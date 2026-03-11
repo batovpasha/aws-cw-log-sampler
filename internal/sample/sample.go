@@ -1,4 +1,4 @@
-package main
+package sample
 
 import (
 	"context"
@@ -10,6 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 )
+
+var cutoff = time.Now().Add(-24 * time.Hour).UnixMilli()
 
 func ProcessLogGroup(ctx context.Context, client *cloudwatchlogs.Client, srcGroup, dstGroup string) error {
 	var nextToken *string

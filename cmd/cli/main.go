@@ -6,14 +6,12 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
+	"github.com/batovpasha/aws-cw-log-sampler/internal/sample"
 	"golang.org/x/sync/errgroup"
 )
-
-var cutoff = time.Now().Add(-24 * time.Hour).UnixMilli()
 
 // GetLogEvents has the lowest TPS - 10, and it's a bottleneck.
 // See limits of other APIs here: https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/cloudwatch_limits_cwl.html
@@ -50,7 +48,7 @@ func main() {
 
 	for _, srcGroup := range appCfg.SrcGroups {
 		g.Go(func() error {
-			if err := ProcessLogGroup(ctx, client, srcGroup, appCfg.DstGroup); err != nil {
+			if err := sample.ProcessLogGroup(ctx, client, srcGroup, appCfg.DstGroup); err != nil {
 				fmt.Printf("error processing log group %s: %v\n", srcGroup, err)
 			}
 			return nil
