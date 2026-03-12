@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
@@ -18,8 +19,9 @@ import (
 const concurrencyLimit = 10
 
 type Config struct {
-	SrcGroups []string `json:"srcGroups"`
-	DstGroup  string   `json:"dstGroup"`
+	SrcGroups     []string `json:"srcGroups"`
+	DstGroup      string   `json:"dstGroup"`
+	LookbackHours uint8    `json:"lookbackHours"`
 }
 
 func main() {
@@ -32,7 +34,7 @@ func main() {
 	if err := json.Unmarshal(data, &appCfg); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(appCfg)
+	cutoff := time.Now().Add(-time.Duration(appCfg.LookbackHours) * time.Hour).UnixMilli()
 
 	ctx := context.Background()
 
@@ -48,7 +50,7 @@ func main() {
 
 	for _, srcGroup := range appCfg.SrcGroups {
 		g.Go(func() error {
-			if err := sample.ProcessLogGroup(ctx, client, srcGroup, appCfg.DstGroup); err != nil {
+			if err := sample.ProcessLogGroup(ctx, client, cutoff, srcGroup, appCfg.DstGroup); err != nil {
 				fmt.Printf("error processing log group %s: %v\n", srcGroup, err)
 			}
 			return nil
