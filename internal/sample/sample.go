@@ -16,7 +16,7 @@ func ProcessLogGroup(ctx context.Context, client *cloudwatchlogs.Client, cutoff 
 		return fmt.Errorf("describe log streams: %w", err)
 	}
 	if len(logStreams) == 0 {
-	  fmt.Println("no log streams found")
+		fmt.Println("no log streams found")
 		return nil
 	}
 
