@@ -111,3 +111,37 @@ func CopyLogStream(ctx context.Context, client *cloudwatchlogs.Client, srcGroup,
 
 	return nil
 }
+
+// ListLogGroupNames lists log group names that match the specified pattern.
+//
+// Doesn't perform pagination, returns all log group names in one slice.
+func ListLogGroupNames(
+	ctx context.Context,
+	client *cloudwatchlogs.Client,
+	logGroupNamePattern string,
+) ([]string, error) {
+	var nextToken *string
+	var logGroups []string
+
+	for {
+		output, err := client.ListLogGroups(ctx, &cloudwatchlogs.ListLogGroupsInput{
+			LogGroupNamePattern: aws.String(logGroupNamePattern),
+			NextToken:           nextToken,
+			Limit:               aws.Int32(1000),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("list log groups: %w", err)
+		}
+
+		for _, group := range output.LogGroups {
+			logGroups = append(logGroups, aws.ToString(group.LogGroupName))
+		}
+
+		nextToken = output.NextToken
+		if nextToken == nil {
+			break
+		}
+	}
+
+	return logGroups, nil
+}
