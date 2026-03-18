@@ -21,6 +21,8 @@ func ProcessLogGroup(ctx context.Context, client *cloudwatchlogs.Client, cutoff 
 	}
 
 	randIndex := rand.IntN(len(logStreams))
+	// TODO: handle the case when the stream was already processed: if the destination stream
+	// already exists, we should pick another one
 	srcStream := logStreams[randIndex]
 
 	fmt.Printf("number of log streams: %d\n", len(logStreams))
