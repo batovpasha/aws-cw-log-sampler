@@ -11,6 +11,8 @@ import (
 
 type Client = cloudwatchlogs.Client
 
+var NewFromConfig = cloudwatchlogs.NewFromConfig
+
 // DescribeLogStreamsUntilCutoff lists all log streams in the specified log group that have
 // a last event timestamp greater than or equal to the cutoff.
 //

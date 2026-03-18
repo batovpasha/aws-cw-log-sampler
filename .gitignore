@@ -33,3 +33,6 @@ go.work.sum
 
 # App config for testing
 config.json
+
+# Shell script with a formatted command for testing
+run.sh
