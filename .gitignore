@@ -34,5 +34,6 @@ go.work.sum
 # App config for testing
 config.json
 
-# Shell script with a formatted command for testing
-run.sh
+# Shell scripts with a formatted command for testing
+run-cli.sh
+run-service.sh

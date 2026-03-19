@@ -2,46 +2,41 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"flag"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
+	"github.com/batovpasha/aws-cw-log-sampler/internal/cli"
+	"github.com/batovpasha/aws-cw-log-sampler/internal/cloudwatchlogs"
 	"github.com/batovpasha/aws-cw-log-sampler/internal/sample"
 	"github.com/robfig/cron/v3"
-	"golang.org/x/sync/errgroup"
 )
 
-// GetLogEvents has the lowest TPS - 10, and it's a bottleneck.
-// See limits of other APIs here: https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/cloudwatch_limits_cwl.html
-const concurrencyLimit = 10
-
-type Config struct {
-	SrcGroups []string `json:"srcGroups"`
-	DstGroup  string   `json:"dstGroup"`
-	Cron      string   `json:"cron"`
-}
-
 func main() {
-	data, err := os.ReadFile("config.json")
-	if err != nil {
-		log.Fatal(err)
-	}
+	fs := flag.CommandLine
+	flags := cli.RegisterCommonFlags(fs)
+	cronExpr := fs.String("cron", "", "cron expression")
+	fs.Parse(os.Args[1:])
 
-	var appCfg Config
-	if err := json.Unmarshal(data, &appCfg); err != nil {
-		log.Fatal(err)
+	err := cli.ValidateCommonFlags(flags)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	if *cronExpr == "" {
+		fmt.Fprintln(os.Stderr, "--cron is required")
+		os.Exit(1)
 	}
 
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
-	sched, err := parser.Parse(appCfg.Cron)
+	sched, err := parser.Parse(*cronExpr)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
-	
+
 	now := time.Now()
 	next1 := sched.Next(now)
 	next2 := sched.Next(next1)
@@ -49,25 +44,21 @@ func main() {
 	cutoff := now.Add(-interval).UnixMilli()
 
 	ctx := context.Background()
-
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
-
 	client := cloudwatchlogs.NewFromConfig(cfg)
 
-	var g errgroup.Group
-	g.SetLimit(concurrencyLimit)
-
-	for _, srcGroup := range appCfg.SrcGroups {
-		g.Go(func() error {
-			if err := sample.ProcessLogGroup(ctx, client, cutoff, srcGroup, appCfg.DstGroup); err != nil {
-				fmt.Printf("error processing log group %s: %v\n", srcGroup, err)
-			}
-			return nil
-		})
+	err = sample.Sample(ctx, client, &sample.Config{
+		LogGroupNamePattern: flags.LogGroupNamePattern,
+		DstGroup:            flags.DstGroup,
+		Type:                flags.Type,
+		Cutoff:              cutoff,
+	})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
-
-	_ = g.Wait()
 }
