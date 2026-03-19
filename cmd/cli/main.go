@@ -11,12 +11,7 @@ import (
 	"github.com/batovpasha/aws-cw-log-sampler/internal/cli"
 	"github.com/batovpasha/aws-cw-log-sampler/internal/cloudwatchlogs"
 	"github.com/batovpasha/aws-cw-log-sampler/internal/sample"
-	"golang.org/x/sync/errgroup"
 )
-
-// GetLogEvents has the lowest TPS - 10, and it's a bottleneck.
-// See limits of other APIs here: https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/cloudwatch_limits_cwl.html
-const concurrencyLimit = 10
 
 func main() {
 	fs := flag.CommandLine
@@ -42,25 +37,16 @@ func main() {
 	}
 	client := cloudwatchlogs.NewFromConfig(cfg)
 
-	srcGroups, err := cloudwatchlogs.ListLogGroupNames(ctx, client, flags.LogGroupNamePattern)
+	cutoff := time.Now().Add(-time.Duration(*lookbackHours) * time.Hour).UnixMilli()
+
+	err = sample.Sample(ctx, client, &sample.Config{
+		LogGroupNamePattern: flags.LogGroupNamePattern,
+		DstGroup:            flags.DstGroup,
+		Type:                flags.Type,
+		Cutoff:              cutoff,
+	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-
-	var g errgroup.Group
-	g.SetLimit(concurrencyLimit)
-
-	cutoff := time.Now().Add(-time.Duration(*lookbackHours) * time.Hour).UnixMilli()
-
-	for _, srcGroup := range srcGroups {
-		g.Go(func() error {
-			if err := sample.ProcessLogGroup(ctx, client, cutoff, srcGroup, flags.DstGroup); err != nil {
-				fmt.Printf("error processing log group %s: %v\n", srcGroup, err)
-			}
-			return nil
-		})
-	}
-
-	_ = g.Wait()
 }
