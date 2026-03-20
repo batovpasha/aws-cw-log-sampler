@@ -3,6 +3,8 @@ package cli
 import (
 	"errors"
 	"flag"
+
+	"github.com/batovpasha/aws-cw-log-sampler/internal/sample"
 )
 
 type CommonFlags struct {
@@ -32,7 +34,7 @@ func ValidateCommonFlags(flags *CommonFlags) error {
 	}
 
 	switch flags.Type {
-	case "rand-log-streams":
+	case sample.TypeRandLogStreams:
 		if flags.RandLogStreamsNumber < 1 || flags.RandLogStreamsNumber > 100 {
 			errs = append(
 				errs,
