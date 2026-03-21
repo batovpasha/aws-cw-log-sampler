@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+
 	"github.com/batovpasha/aws-cw-log-sampler/internal/cloudwatchlogs"
 )
 

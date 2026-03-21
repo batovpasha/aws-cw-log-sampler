@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/batovpasha/aws-cw-log-sampler/internal/cloudwatchlogs"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/batovpasha/aws-cw-log-sampler/internal/cloudwatchlogs"
 )
 
 type Config struct {

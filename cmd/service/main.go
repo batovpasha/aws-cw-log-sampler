@@ -8,10 +8,11 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/robfig/cron/v3"
+
 	"github.com/batovpasha/aws-cw-log-sampler/internal/cli"
 	"github.com/batovpasha/aws-cw-log-sampler/internal/cloudwatchlogs"
 	"github.com/batovpasha/aws-cw-log-sampler/internal/sample"
-	"github.com/robfig/cron/v3"
 )
 
 func main() {
