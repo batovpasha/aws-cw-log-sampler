@@ -5,8 +5,8 @@ on:
       - main
 
 env:
-    GO_VERSION: v1.26
-    GOLANGCI_LINT_VERSION: v2.11.3
+  GO_VERSION: v1.26
+  GOLANGCI_LINT_VERSION: v2.11.3
 
 permissions:
   contents: read
