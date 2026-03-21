@@ -11,7 +11,12 @@ import (
 	"github.com/batovpasha/aws-cw-log-sampler/internal/cloudwatchlogs"
 )
 
-func SampleByRandLogStreams(ctx context.Context, client *cloudwatchlogs.Client, cutoff int64, srcGroup, dstGroup string) error {
+func SampleByRandLogStreams(
+	ctx context.Context,
+	client *cloudwatchlogs.Client,
+	cutoff int64,
+	srcGroup, dstGroup string,
+) error {
 	logStreams, err := cloudwatchlogs.DescribeLogStreamsUntilCutoff(ctx, client, srcGroup, cutoff)
 	if err != nil {
 		return fmt.Errorf("describe log streams: %w", err)

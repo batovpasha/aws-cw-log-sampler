@@ -19,7 +19,12 @@ var NewFromConfig = cloudwatchlogs.NewFromConfig
 // cutoff is a Unix time in milliseconds.
 //
 // Doesn't perform pagination, returns all log streams in one slice.
-func DescribeLogStreamsUntilCutoff(ctx context.Context, client *cloudwatchlogs.Client, logGroupName string, cutoff int64) ([]types.LogStream, error) {
+func DescribeLogStreamsUntilCutoff(
+	ctx context.Context,
+	client *cloudwatchlogs.Client,
+	logGroupName string,
+	cutoff int64,
+) ([]types.LogStream, error) {
 	var nextToken *string
 	var logStreams []types.LogStream
 
@@ -63,7 +68,11 @@ Outer:
 // CopyLogStream copies log events from the source log stream to the destination log stream.
 //
 // The dstGroup must already exist, the dstStream will be created by this function.
-func CopyLogStream(ctx context.Context, client *cloudwatchlogs.Client, srcGroup, srcStream, dstGroup, dstStream string) error {
+func CopyLogStream(
+	ctx context.Context,
+	client *cloudwatchlogs.Client,
+	srcGroup, srcStream, dstGroup, dstStream string,
+) error {
 	_, err := client.CreateLogStream(ctx, &cloudwatchlogs.CreateLogStreamInput{
 		LogGroupName:  aws.String(dstGroup),
 		LogStreamName: aws.String(dstStream),
