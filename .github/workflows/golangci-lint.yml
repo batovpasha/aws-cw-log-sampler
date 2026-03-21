@@ -1,0 +1,26 @@
+name: golangci-lint
+on:
+  push:
+    branches:
+      - main
+
+env:
+    GO_VERSION: v1.26
+    GOLANGCI_LINT_VERSION: v2.11.3
+
+permissions:
+  contents: read
+
+jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
