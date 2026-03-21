@@ -18,7 +18,7 @@ func main() {
 	fs := flag.CommandLine
 	flags := cli.RegisterCommonFlags(fs)
 	cronExpr := fs.String("cron", "", "cron expression")
-	fs.Parse(os.Args[1:])
+	_ = fs.Parse(os.Args[1:])
 
 	err := cli.ValidateCommonFlags(flags)
 	if err != nil {

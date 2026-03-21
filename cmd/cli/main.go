@@ -17,7 +17,7 @@ func main() {
 	fs := flag.CommandLine
 	flags := cli.RegisterCommonFlags(fs)
 	lookbackHours := fs.Int("lookbackHours", 24, "lookback hours")
-	fs.Parse(os.Args[1:])
+	_ = fs.Parse(os.Args[1:])
 
 	err := cli.ValidateCommonFlags(flags)
 	if err != nil {
