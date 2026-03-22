@@ -53,10 +53,11 @@ func main() {
 	client := cloudwatchlogs.NewFromConfig(cfg)
 
 	err = sample.Sample(ctx, client, &sample.Config{
-		LogGroupNamePattern: flags.LogGroupNamePattern,
-		DstGroup:            flags.DstGroup,
-		Type:                flags.Type,
-		Cutoff:              cutoff,
+		LogGroupNamePattern:  flags.LogGroupNamePattern,
+		DstGroup:             flags.DstGroup,
+		Type:                 flags.Type,
+		Cutoff:               cutoff,
+		RandLogStreamsNumber: flags.RandLogStreamsNumber,
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
