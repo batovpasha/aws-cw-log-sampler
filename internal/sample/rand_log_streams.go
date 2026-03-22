@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 
 	"github.com/batovpasha/aws-cw-log-sampler/internal/cloudwatchlogs"
 )
@@ -16,39 +17,62 @@ func SampleByRandLogStreams(
 	client *cloudwatchlogs.Client,
 	cutoff int64,
 	srcGroup, dstGroup string,
+	randLogStreamsNumber int,
 ) error {
-	logStreams, err := cloudwatchlogs.DescribeLogStreamsUntilCutoff(ctx, client, srcGroup, cutoff)
+	allStreams, err := cloudwatchlogs.DescribeLogStreamsUntilCutoff(ctx, client, srcGroup, cutoff)
 	if err != nil {
 		return fmt.Errorf("describe log streams: %w", err)
 	}
-	if len(logStreams) == 0 {
+	if len(allStreams) == 0 {
 		fmt.Println("no log streams found")
 		return nil
 	}
+	fmt.Printf("number of log streams: %d\n", len(allStreams))
 
-	randIndex := rand.IntN(len(logStreams))
-	// TODO: handle the case when the stream was already processed: if the destination stream
-	// already exists, we should pick another one
-	srcStream := logStreams[randIndex]
+	randStreams := pickRandomLogStreams(allStreams, randLogStreamsNumber)
+	randStreamNames := make([]string, len(randStreams))
+	for i, s := range randStreams {
+		randStreamNames[i] = aws.ToString(s.LogStreamName)
+	}
+	fmt.Printf("randomly selected streams: %v\n", randStreamNames)
 
-	fmt.Printf("number of log streams: %d\n", len(logStreams))
-	fmt.Printf("randomly selected stream: %s\n", *srcStream.LogStreamName)
+	for _, srcStreamName := range randStreamNames {
+		// logGroupName/streamName/year/month/day/hour/minutes - almost the same format as CloudWatch Data Protection uses
+		dstStreamName := fmt.Sprintf(
+			"%s/%s/%s",
+			srcGroup,
+			srcStreamName,
+			time.Now().UTC().Format("2006/01/02/15/04"),
+		)
+		fmt.Println("destination stream name:", dstStreamName)
 
-	// logGroupName/year/month/day/hour/minutes - almost the same format as CloudWatch Data Protection uses
-	dstStreamName := fmt.Sprintf("%s/%s", srcGroup, time.Now().UTC().Format("2006/01/02/15/04"))
-	fmt.Println("destination stream name:", dstStreamName)
-
-	err = cloudwatchlogs.CopyLogStream(
-		ctx,
-		client,
-		srcGroup,
-		aws.ToString(srcStream.LogStreamName),
-		dstGroup,
-		dstStreamName,
-	)
-	if err != nil {
-		return fmt.Errorf("copy log stream: %w", err)
+		err = cloudwatchlogs.CopyLogStream(
+			ctx,
+			client,
+			srcGroup,
+			srcStreamName,
+			dstGroup,
+			dstStreamName,
+		)
+		if err != nil {
+			fmt.Printf("error copying log stream %s: %v\n", srcStreamName, err)
+		}
 	}
 
 	return nil
+}
+
+func pickRandomLogStreams(logStreams []types.LogStream, n int) []types.LogStream {
+	total := len(logStreams)
+	if total <= n {
+		return logStreams
+	}
+
+	indices := rand.Perm(total)[:n]
+	result := make([]types.LogStream, n)
+	for i, idx := range indices {
+		result[i] = logStreams[idx]
+	}
+
+	return result
 }

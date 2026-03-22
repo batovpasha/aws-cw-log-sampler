@@ -41,10 +41,11 @@ func main() {
 	cutoff := time.Now().Add(-time.Duration(*lookbackHours) * time.Hour).UnixMilli()
 
 	err = sample.Sample(ctx, client, &sample.Config{
-		LogGroupNamePattern: flags.LogGroupNamePattern,
-		DstGroup:            flags.DstGroup,
-		Type:                flags.Type,
-		Cutoff:              cutoff,
+		LogGroupNamePattern:  flags.LogGroupNamePattern,
+		DstGroup:             flags.DstGroup,
+		Type:                 flags.Type,
+		Cutoff:               cutoff,
+		RandLogStreamsNumber: flags.RandLogStreamsNumber,
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

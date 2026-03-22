@@ -14,6 +14,9 @@ type Config struct {
 	DstGroup            string
 	Type                string
 	Cutoff              int64
+
+	// rand-log-streams options
+	RandLogStreamsNumber int
 }
 
 const (
@@ -39,7 +42,7 @@ func Sample(ctx context.Context, client *cloudwatchlogs.Client, cfg *Config) err
 
 			switch cfg.Type {
 			case TypeRandLogStreams:
-				err = SampleByRandLogStreams(ctx, client, cfg.Cutoff, srcGroup, cfg.DstGroup)
+				err = SampleByRandLogStreams(ctx, client, cfg.Cutoff, srcGroup, cfg.DstGroup, cfg.RandLogStreamsNumber)
 			default:
 				err = fmt.Errorf("unsupported sampling type: %s", cfg.Type)
 			}
