@@ -4,7 +4,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -38,13 +41,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	now := time.Now()
-	next1 := sched.Next(now)
-	next2 := sched.Next(next1)
-	interval := next2.Sub(next1)
-	cutoff := now.Add(-interval).UnixMilli()
-
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -52,15 +49,45 @@ func main() {
 	}
 	client := cloudwatchlogs.NewFromConfig(cfg)
 
-	err = sample.Sample(ctx, client, &sample.Config{
-		LogGroupNamePattern:  flags.LogGroupNamePattern,
-		DstGroup:             flags.DstGroup,
-		Type:                 flags.Type,
-		Cutoff:               cutoff,
-		RandLogStreamsNumber: flags.RandLogStreamsNumber,
+	now := time.Now()
+	next1 := sched.Next(now)
+	next2 := sched.Next(next1)
+	interval := next2.Sub(next1)
+
+	errCh := make(chan error, 1)
+
+	c := cron.New()
+	c.AddFunc(*cronExpr, func() {
+		cutoff := time.Now().Add(-interval).UnixMilli()
+		err := sample.Sample(ctx, client, &sample.Config{
+			LogGroupNamePattern:  flags.LogGroupNamePattern,
+			DstGroup:             flags.DstGroup,
+			Type:                 flags.Type,
+			Cutoff:               cutoff,
+			RandLogStreamsNumber: flags.RandLogStreamsNumber,
+		})
+		if err != nil {
+			errCh <- err
+			return
+		}
+		log.Printf("The next run is scheduled on: %v", c.Entries()[0].Next)
 	})
-	if err != nil {
+	c.Start()
+	log.Printf("The next run is scheduled on: %v", c.Entries()[0].Next)
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+
+	exitCode := 0
+	select {
+	case <-sigCh:
+		// normal shutdown
+	case err = <-errCh:
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		exitCode = 1
 	}
+
+	cancel()
+	c.Stop()
+	os.Exit(exitCode)
 }
