@@ -57,7 +57,7 @@ func main() {
 	errCh := make(chan error, 1)
 
 	c := cron.New()
-	c.AddFunc(*cronExpr, func() {
+	_, err = c.AddFunc(*cronExpr, func() {
 		cutoff := time.Now().Add(-interval).UnixMilli()
 		err := sample.Sample(ctx, client, &sample.Config{
 			LogGroupNamePattern:  flags.LogGroupNamePattern,
@@ -72,6 +72,11 @@ func main() {
 		}
 		log.Printf("The next run is scheduled on: %v", c.Entries()[0].Next)
 	})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
 	c.Start()
 	log.Printf("The next run is scheduled on: %v", c.Entries()[0].Next)
 
