@@ -3,6 +3,7 @@ package sample
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"golang.org/x/sync/errgroup"
 
@@ -32,6 +33,7 @@ func Sample(ctx context.Context, client *cloudwatchlogs.Client, cfg *Config) err
 	if err != nil {
 		return fmt.Errorf("list log groups: %w", err)
 	}
+	log.Println("number of log groups:", len(srcGroups))
 
 	var g errgroup.Group
 	g.SetLimit(concurrencyLimit)
