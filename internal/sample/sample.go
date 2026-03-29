@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 
 	"golang.org/x/sync/errgroup"
 
@@ -38,23 +39,36 @@ func Sample(ctx context.Context, client *cloudwatchlogs.Client, cfg *Config) err
 	var g errgroup.Group
 	g.SetLimit(concurrencyLimit)
 
+	var mu sync.Mutex
+	processedLogStreams := 0
+
 	for _, srcGroup := range srcGroups {
 		g.Go(func() error {
-			var err error
-
 			switch cfg.Type {
 			case TypeRandLogStreams:
-				err = SampleByRandLogStreams(ctx, client, cfg.Cutoff, srcGroup, cfg.DstGroup, cfg.RandLogStreamsNumber)
-			default:
-				err = fmt.Errorf("unsupported sampling type: %s", cfg.Type)
-			}
-			if err != nil {
-				fmt.Printf("error processing log group %s: %v\n", srcGroup, err)
+				processed, err := SampleByRandLogStreams(
+					ctx,
+					client,
+					cfg.Cutoff,
+					srcGroup,
+					cfg.DstGroup,
+					cfg.RandLogStreamsNumber,
+				)
+				if err != nil {
+					fmt.Printf("error processing log group %s: %v\n", srcGroup, err)
+					return nil
+				}
+				mu.Lock()
+				processedLogStreams += processed
+				mu.Unlock()
 			}
 
 			return nil
 		})
 	}
 
-	return g.Wait()
+	_ = g.Wait()
+	log.Printf("processed %d log streams\n", processedLogStreams)
+
+	return nil
 }

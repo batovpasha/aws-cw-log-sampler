@@ -18,14 +18,14 @@ func SampleByRandLogStreams(
 	cutoff int64,
 	srcGroup, dstGroup string,
 	randLogStreamsNumber int,
-) error {
+) (processed int, err error) {
 	allStreams, err := cloudwatchlogs.DescribeLogStreamsUntilCutoff(ctx, client, srcGroup, cutoff)
 	if err != nil {
-		return fmt.Errorf("describe log streams: %w", err)
+		return processed, fmt.Errorf("describe log streams: %w", err)
 	}
 	if len(allStreams) == 0 {
 		fmt.Println("no log streams found")
-		return nil
+		return processed, nil
 	}
 	fmt.Printf("number of log streams: %d\n", len(allStreams))
 
@@ -56,10 +56,12 @@ func SampleByRandLogStreams(
 		)
 		if err != nil {
 			fmt.Printf("error copying log stream %s: %v\n", srcStreamName, err)
+			continue
 		}
+		processed++
 	}
 
-	return nil
+	return processed, nil
 }
 
 func pickRandomLogStreams(logStreams []types.LogStream, n int) []types.LogStream {
