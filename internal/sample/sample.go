@@ -42,6 +42,8 @@ func Sample(ctx context.Context, client *cloudwatchlogs.Client, cfg *Config) err
 	var mu sync.Mutex
 	processedLogStreams := 0
 
+	// TODO: Move log stream processing to rand_log_streams.go because concurrencyLimit and processedLogStreams logging
+	// are internal details of the rand-log-streams sampling type
 	for _, srcGroup := range srcGroups {
 		g.Go(func() error {
 			switch cfg.Type {
