@@ -4,9 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"sync/atomic"
-
-	"golang.org/x/sync/errgroup"
 
 	"github.com/batovpasha/aws-cw-log-sampler/internal/cloudwatchlogs"
 )
@@ -25,10 +22,6 @@ const (
 	TypeRandLogStreams = "rand-log-streams"
 )
 
-// GetLogEvents has the lowest TPS - 10, and it's a bottleneck.
-// See limits of other APIs here: https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/cloudwatch_limits_cwl.html
-const concurrencyLimit = 10
-
 func Sample(ctx context.Context, client *cloudwatchlogs.Client, cfg *Config) error {
 	srcGroups, err := cloudwatchlogs.ListLogGroupNames(ctx, client, cfg.LogGroupNamePattern)
 	if err != nil {
@@ -36,38 +29,10 @@ func Sample(ctx context.Context, client *cloudwatchlogs.Client, cfg *Config) err
 	}
 	log.Println("number of log groups:", len(srcGroups))
 
-	var g errgroup.Group
-	g.SetLimit(concurrencyLimit)
-
-	var processedLogStreams atomic.Int64
-
-	// TODO: Move log stream processing to rand_log_streams.go because concurrencyLimit and processedLogStreams logging
-	// are internal details of the rand-log-streams sampling type
-	for _, srcGroup := range srcGroups {
-		g.Go(func() error {
-			switch cfg.Type {
-			case TypeRandLogStreams:
-				processed, err := SampleByRandLogStreams(
-					ctx,
-					client,
-					cfg.Cutoff,
-					srcGroup,
-					cfg.DstGroup,
-					cfg.RandLogStreamsNumber,
-				)
-				if err != nil {
-					fmt.Printf("error processing log group %s: %v\n", srcGroup, err)
-					return nil
-				}
-				processedLogStreams.Add(processed)
-			}
-
-			return nil
-		})
+	switch cfg.Type {
+	case TypeRandLogStreams:
+		SampleByRandLogStreams(ctx, client, cfg.Cutoff, srcGroups, cfg.DstGroup, cfg.RandLogStreamsNumber)
 	}
-
-	_ = g.Wait()
-	log.Printf("processed %d log streams\n", processedLogStreams.Load())
 
 	return nil
 }

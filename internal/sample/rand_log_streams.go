@@ -3,16 +3,52 @@ package sample
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/rand/v2"
+	"sync/atomic"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/batovpasha/aws-cw-log-sampler/internal/cloudwatchlogs"
 )
 
+// GetLogEvents has the lowest TPS - 10, and it's a bottleneck.
+// See limits of other APIs here: https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/cloudwatch_limits_cwl.html
+const concurrencyLimit = 10
+
 func SampleByRandLogStreams(
+	ctx context.Context,
+	client *cloudwatchlogs.Client,
+	cutoff int64,
+	srcGroups []string,
+	dstGroup string,
+	randLogStreamsNumber int,
+) {
+	var g errgroup.Group
+	g.SetLimit(concurrencyLimit)
+
+	var processedLogStreams atomic.Int64
+
+	for _, srcGroup := range srcGroups {
+		g.Go(func() error {
+			processed, err := processLogGroup(ctx, client, cutoff, srcGroup, dstGroup, randLogStreamsNumber)
+			if err != nil {
+				fmt.Printf("error processing log group %s: %v\n", srcGroup, err)
+				return nil
+			}
+			processedLogStreams.Add(processed)
+			return nil
+		})
+	}
+
+	_ = g.Wait()
+	log.Printf("processed %d log streams\n", processedLogStreams.Load())
+}
+
+func processLogGroup(
 	ctx context.Context,
 	client *cloudwatchlogs.Client,
 	cutoff int64,
