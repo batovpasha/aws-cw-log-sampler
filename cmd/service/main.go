@@ -54,8 +54,6 @@ func main() {
 	next2 := sched.Next(next1)
 	interval := next2.Sub(next1)
 
-	errCh := make(chan error, 1)
-
 	c := cron.New()
 	_, err = c.AddFunc(*cronExpr, func() {
 		cutoff := time.Now().Add(-interval).UnixMilli()
@@ -67,10 +65,9 @@ func main() {
 			RandLogStreamsNumber: flags.RandLogStreamsNumber,
 		})
 		if err != nil {
-			errCh <- err
-			return
+			log.Printf("current run has failed: %v\n", err)
 		}
-		log.Printf("The next run is scheduled on: %v", c.Entries()[0].Next)
+		log.Printf("next run is scheduled on: %v", c.Entries()[0].Next)
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -78,21 +75,11 @@ func main() {
 	}
 
 	c.Start()
-	log.Printf("The next run is scheduled on: %v", c.Entries()[0].Next)
+	log.Printf("next run is scheduled on: %v", c.Entries()[0].Next)
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
-
-	exitCode := 0
-	select {
-	case <-sigCh:
-		// normal shutdown
-	case err = <-errCh:
-		fmt.Fprintln(os.Stderr, err)
-		exitCode = 1
-	}
-
+	<-sigCh
 	cancel()
 	c.Stop()
-	os.Exit(exitCode)
 }
