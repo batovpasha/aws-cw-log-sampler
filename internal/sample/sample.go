@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"sync"
+	"sync/atomic"
 
 	"golang.org/x/sync/errgroup"
 
@@ -39,8 +39,7 @@ func Sample(ctx context.Context, client *cloudwatchlogs.Client, cfg *Config) err
 	var g errgroup.Group
 	g.SetLimit(concurrencyLimit)
 
-	var mu sync.Mutex
-	processedLogStreams := 0
+	var processedLogStreams atomic.Int64
 
 	// TODO: Move log stream processing to rand_log_streams.go because concurrencyLimit and processedLogStreams logging
 	// are internal details of the rand-log-streams sampling type
@@ -60,9 +59,7 @@ func Sample(ctx context.Context, client *cloudwatchlogs.Client, cfg *Config) err
 					fmt.Printf("error processing log group %s: %v\n", srcGroup, err)
 					return nil
 				}
-				mu.Lock()
-				processedLogStreams += processed
-				mu.Unlock()
+				processedLogStreams.Add(processed)
 			}
 
 			return nil
@@ -70,7 +67,7 @@ func Sample(ctx context.Context, client *cloudwatchlogs.Client, cfg *Config) err
 	}
 
 	_ = g.Wait()
-	log.Printf("processed %d log streams\n", processedLogStreams)
+	log.Printf("processed %d log streams\n", processedLogStreams.Load())
 
 	return nil
 }

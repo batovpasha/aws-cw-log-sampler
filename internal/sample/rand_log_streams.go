@@ -18,7 +18,7 @@ func SampleByRandLogStreams(
 	cutoff int64,
 	srcGroup, dstGroup string,
 	randLogStreamsNumber int,
-) (processed int, err error) {
+) (processed int64, err error) {
 	allStreams, err := cloudwatchlogs.DescribeLogStreamsUntilCutoff(ctx, client, srcGroup, cutoff)
 	if err != nil {
 		return processed, fmt.Errorf("describe log streams: %w", err)
