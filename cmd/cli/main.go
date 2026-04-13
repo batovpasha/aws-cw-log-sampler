@@ -48,6 +48,7 @@ func main() {
 	h := slog.NewJSONHandler(os.Stdout, nil)
 	logger := slog.New(&contextHandler{Handler: h})
 	slog.SetDefault(logger)
+
 	traceID := time.Now().UTC().Format(time.RFC3339)
 	ctx := context.WithValue(context.Background(), traceIDKey, traceID)
 
