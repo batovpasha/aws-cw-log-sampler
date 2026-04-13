@@ -3,7 +3,7 @@ package sample
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/batovpasha/aws-cw-log-sampler/internal/cloudwatchlogs"
 )
@@ -27,7 +27,7 @@ func Sample(ctx context.Context, client *cloudwatchlogs.Client, cfg *Config) err
 	if err != nil {
 		return fmt.Errorf("list log groups: %w", err)
 	}
-	log.Println("number of log groups:", len(srcGroups))
+	slog.InfoContext(ctx, "list log groups", "number", len(srcGroups))
 
 	switch cfg.Type {
 	case TypeRandLogStreams:

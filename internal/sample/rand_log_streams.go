@@ -3,7 +3,7 @@ package sample
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"math/rand/v2"
 	"sync/atomic"
 	"time"
@@ -36,7 +36,7 @@ func SampleByRandLogStreams(
 		g.Go(func() error {
 			processed, err := processLogGroup(ctx, client, cutoff, srcGroup, dstGroup, randLogStreamsNumber)
 			if err != nil {
-				fmt.Printf("error processing log group %s: %v\n", srcGroup, err)
+				slog.WarnContext(ctx, "error processing log group", "log_group", srcGroup, "error", err)
 				return nil
 			}
 			processedLogStreams.Add(processed)
@@ -45,7 +45,7 @@ func SampleByRandLogStreams(
 	}
 
 	_ = g.Wait()
-	log.Printf("processed %d log streams\n", processedLogStreams.Load())
+	slog.InfoContext(ctx, "complete log stream processing", "number", processedLogStreams.Load())
 }
 
 func processLogGroup(
@@ -60,17 +60,17 @@ func processLogGroup(
 		return processed, fmt.Errorf("describe log streams: %w", err)
 	}
 	if len(allStreams) == 0 {
-		fmt.Println("no log streams found")
+		slog.InfoContext(ctx, "no log streams found")
 		return processed, nil
 	}
-	fmt.Printf("number of log streams: %d\n", len(allStreams))
+	slog.InfoContext(ctx, "list log streams", "number", len(allStreams))
 
 	randStreams := pickRandomLogStreams(allStreams, randLogStreamsNumber)
 	randStreamNames := make([]string, len(randStreams))
 	for i, s := range randStreams {
 		randStreamNames[i] = aws.ToString(s.LogStreamName)
 	}
-	fmt.Printf("randomly selected streams: %v\n", randStreamNames)
+	slog.InfoContext(ctx, "pick random log streams", "number", len(randStreamNames))
 
 	for _, srcStreamName := range randStreamNames {
 		// logGroupName/streamName/year/month/day/hour/minutes - almost the same format as CloudWatch Data Protection uses
@@ -80,8 +80,8 @@ func processLogGroup(
 			srcStreamName,
 			time.Now().UTC().Format("2006/01/02/15/04"),
 		)
-		fmt.Println("destination stream name:", dstStreamName)
 
+		slog.InfoContext(ctx, "copy log streams", "src_stream", srcStreamName, "dst_stream", dstStreamName)
 		err = cloudwatchlogs.CopyLogStream(
 			ctx,
 			client,
@@ -91,7 +91,7 @@ func processLogGroup(
 			dstStreamName,
 		)
 		if err != nil {
-			fmt.Printf("error copying log stream %s: %v\n", srcStreamName, err)
+			slog.WarnContext(ctx, "error copying log stream", "error", err)
 			continue
 		}
 		processed++

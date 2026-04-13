@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 	"time"
 
@@ -13,6 +14,20 @@ import (
 	"github.com/batovpasha/aws-cw-log-sampler/internal/cloudwatchlogs"
 	"github.com/batovpasha/aws-cw-log-sampler/internal/sample"
 )
+
+type contextHandler struct {
+	slog.Handler
+}
+type ctxKey string
+
+const traceIDKey ctxKey = "trace_id"
+
+func (h *contextHandler) Handle(ctx context.Context, r slog.Record) error {
+	if traceId, ok := ctx.Value(traceIDKey).(string); ok {
+		r.AddAttrs(slog.String(string(traceIDKey), traceId))
+	}
+	return h.Handler.Handle(ctx, r)
+}
 
 func main() {
 	fs := flag.CommandLine
@@ -30,7 +45,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx := context.Background()
+	h := slog.NewJSONHandler(os.Stdout, nil)
+	logger := slog.New(&contextHandler{Handler: h})
+	slog.SetDefault(logger)
+	traceID := time.Now().UTC().Format(time.RFC3339)
+	ctx := context.WithValue(context.Background(), traceIDKey, traceID)
+
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

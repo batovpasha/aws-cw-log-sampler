@@ -41,7 +41,6 @@ Outer:
 			return nil, fmt.Errorf("describe log streams: %w", err)
 		}
 		if len(output.LogStreams) == 0 {
-			fmt.Println("no streams found in", logGroupName)
 			break
 		}
 
