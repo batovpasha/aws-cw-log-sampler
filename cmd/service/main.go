@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,6 +15,7 @@ import (
 
 	"github.com/batovpasha/aws-cw-log-sampler/internal/cli"
 	"github.com/batovpasha/aws-cw-log-sampler/internal/cloudwatchlogs"
+	"github.com/batovpasha/aws-cw-log-sampler/internal/logger"
 	"github.com/batovpasha/aws-cw-log-sampler/internal/sample"
 )
 
@@ -41,6 +42,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	logger.New()
 	ctx, cancel := context.WithCancel(context.Background())
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
@@ -56,8 +58,9 @@ func main() {
 
 	c := cron.New()
 	_, err = c.AddFunc(*cronExpr, func() {
+		runCtx := logger.WithTraceID(ctx)
 		cutoff := time.Now().Add(-interval).UnixMilli()
-		err := sample.Sample(ctx, client, &sample.Config{
+		err := sample.Sample(runCtx, client, &sample.Config{
 			LogGroupNamePattern:  flags.LogGroupNamePattern,
 			DstGroup:             flags.DstGroup,
 			Type:                 flags.Type,
@@ -65,9 +68,9 @@ func main() {
 			RandLogStreamsNumber: flags.RandLogStreamsNumber,
 		})
 		if err != nil {
-			log.Printf("current run has failed: %v\n", err)
+			slog.WarnContext(runCtx, "error during sampling", "error", err)
 		}
-		log.Printf("next run is scheduled on: %v", c.Entries()[0].Next)
+		slog.Info("schedule next run", "time", c.Entries()[0].Next)
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -75,7 +78,7 @@ func main() {
 	}
 
 	c.Start()
-	log.Printf("next run is scheduled on: %v", c.Entries()[0].Next)
+	slog.Info("schedule next run", "time", c.Entries()[0].Next)
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
