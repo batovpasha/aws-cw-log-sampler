@@ -21,9 +21,9 @@ func (h *contextHandler) Handle(ctx context.Context, r slog.Record) error {
 	return h.Handler.Handle(ctx, r)
 }
 
-func New() *slog.Logger {
+func New(version string) *slog.Logger {
 	h := slog.NewJSONHandler(os.Stdout, nil)
-	l := slog.New(&contextHandler{Handler: h})
+	l := slog.New(&contextHandler{Handler: h}).With("version", version)
 	slog.SetDefault(l)
 	return l
 }

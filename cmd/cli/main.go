@@ -15,6 +15,9 @@ import (
 	"github.com/batovpasha/aws-cw-log-sampler/internal/sample"
 )
 
+// Version is set at build time using -ldflags "-X main.version=$VERSION"
+var version = "dev"
+
 func main() {
 	fs := flag.CommandLine
 	flags := cli.RegisterCommonFlags(fs)
@@ -31,7 +34,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger.New()
+	logger.New(version)
 	ctx := logger.WithTraceID(context.Background())
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
