@@ -1,4 +1,4 @@
-package cloudwatchlogs
+package cwlogs
 
 import (
 	"context"

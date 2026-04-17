@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/batovpasha/aws-cw-log-sampler/internal/cloudwatchlogs"
+	"github.com/batovpasha/aws-cw-log-sampler/internal/cwlogs"
 )
 
 type Config struct {
@@ -22,8 +22,8 @@ const (
 	TypeRandLogStreams = "rand-log-streams"
 )
 
-func Sample(ctx context.Context, client *cloudwatchlogs.Client, cfg *Config) error {
-	srcGroups, err := cloudwatchlogs.ListLogGroupNames(ctx, client, cfg.LogGroupNamePattern)
+func Sample(ctx context.Context, client *cwlogs.Client, cfg *Config) error {
+	srcGroups, err := cwlogs.ListLogGroupNames(ctx, client, cfg.LogGroupNamePattern)
 	if err != nil {
 		return fmt.Errorf("list log groups: %w", err)
 	}

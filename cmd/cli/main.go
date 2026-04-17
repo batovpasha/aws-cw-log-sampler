@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 
 	"github.com/batovpasha/aws-cw-log-sampler/internal/cli"
-	"github.com/batovpasha/aws-cw-log-sampler/internal/cloudwatchlogs"
+	"github.com/batovpasha/aws-cw-log-sampler/internal/cwlogs"
 	"github.com/batovpasha/aws-cw-log-sampler/internal/logger"
 	"github.com/batovpasha/aws-cw-log-sampler/internal/sample"
 )
@@ -38,7 +38,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	client := cloudwatchlogs.NewFromConfig(cfg)
+	client := cwlogs.NewFromConfig(cfg)
 
 	cutoff := time.Now().Add(-time.Duration(*lookbackHours) * time.Hour).UnixMilli()
 

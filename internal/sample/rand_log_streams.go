@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/batovpasha/aws-cw-log-sampler/internal/cloudwatchlogs"
+	"github.com/batovpasha/aws-cw-log-sampler/internal/cwlogs"
 )
 
 // GetLogEvents has the lowest TPS - 10, and it's a bottleneck.
@@ -21,7 +21,7 @@ const concurrencyLimit = 10
 
 func SampleByRandLogStreams(
 	ctx context.Context,
-	client *cloudwatchlogs.Client,
+	client *cwlogs.Client,
 	cutoff int64,
 	srcGroups []string,
 	dstGroup string,
@@ -50,12 +50,12 @@ func SampleByRandLogStreams(
 
 func processLogGroup(
 	ctx context.Context,
-	client *cloudwatchlogs.Client,
+	client *cwlogs.Client,
 	cutoff int64,
 	srcGroup, dstGroup string,
 	randLogStreamsNumber int,
 ) (processed int64, err error) {
-	allStreams, err := cloudwatchlogs.DescribeLogStreamsUntilCutoff(ctx, client, srcGroup, cutoff)
+	allStreams, err := cwlogs.DescribeLogStreamsUntilCutoff(ctx, client, srcGroup, cutoff)
 	if err != nil {
 		return processed, fmt.Errorf("describe log streams: %w", err)
 	}
@@ -82,7 +82,7 @@ func processLogGroup(
 		)
 
 		slog.InfoContext(ctx, "copy log streams", "src_stream", srcStreamName, "dst_stream", dstStreamName)
-		err = cloudwatchlogs.CopyLogStream(
+		err = cwlogs.CopyLogStream(
 			ctx,
 			client,
 			srcGroup,

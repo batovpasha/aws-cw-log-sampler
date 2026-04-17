@@ -14,7 +14,7 @@ import (
 	"github.com/robfig/cron/v3"
 
 	"github.com/batovpasha/aws-cw-log-sampler/internal/cli"
-	"github.com/batovpasha/aws-cw-log-sampler/internal/cloudwatchlogs"
+	"github.com/batovpasha/aws-cw-log-sampler/internal/cwlogs"
 	"github.com/batovpasha/aws-cw-log-sampler/internal/logger"
 	"github.com/batovpasha/aws-cw-log-sampler/internal/sample"
 )
@@ -49,7 +49,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	client := cloudwatchlogs.NewFromConfig(cfg)
+	client := cwlogs.NewFromConfig(cfg)
 
 	now := time.Now()
 	next1 := sched.Next(now)
