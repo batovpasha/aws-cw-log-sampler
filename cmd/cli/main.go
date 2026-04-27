@@ -16,7 +16,7 @@ import (
 )
 
 // Version is set at build time using -ldflags "-X main.version=$VERSION"
-var version = "dev" // do not remove or modify
+var version string // do not remove or modify
 
 func main() {
 	fs := flag.CommandLine
