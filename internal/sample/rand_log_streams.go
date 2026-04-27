@@ -82,7 +82,7 @@ func processLogGroup(
 		)
 
 		slog.InfoContext(ctx, "copy log streams", "src_stream", srcStreamName, "dst_stream", dstStreamName)
-		err = cwlogs.CopyLogStream(
+		processedEvents, err := cwlogs.CopyLogStream(
 			ctx,
 			client,
 			srcGroup,
@@ -94,6 +94,16 @@ func processLogGroup(
 			slog.WarnContext(ctx, "error copying log stream", "error", err)
 			continue
 		}
+		slog.InfoContext(
+			ctx,
+			"complete log stream copying",
+			"src_stream",
+			srcStreamName,
+			"dst_stream",
+			dstStreamName,
+			"number",
+			processedEvents,
+		)
 		processed++
 	}
 

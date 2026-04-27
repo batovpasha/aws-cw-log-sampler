@@ -71,13 +71,13 @@ func CopyLogStream(
 	ctx context.Context,
 	client *cloudwatchlogs.Client,
 	srcGroup, srcStream, dstGroup, dstStream string,
-) error {
-	_, err := client.CreateLogStream(ctx, &cloudwatchlogs.CreateLogStreamInput{
+) (processed int, err error) {
+	_, err = client.CreateLogStream(ctx, &cloudwatchlogs.CreateLogStreamInput{
 		LogGroupName:  aws.String(dstGroup),
 		LogStreamName: aws.String(dstStream),
 	})
 	if err != nil {
-		return fmt.Errorf("create stream: %w", err)
+		return processed, fmt.Errorf("create stream: %w", err)
 	}
 
 	var nextToken *string
@@ -89,11 +89,12 @@ func CopyLogStream(
 			NextToken:     nextToken,
 		})
 		if err != nil {
-			return fmt.Errorf("get events: %w", err)
+			return processed, fmt.Errorf("get events: %w", err)
 		}
 		if len(output.Events) == 0 {
 			break
 		}
+		processed += len(output.Events)
 
 		inputEvents := make([]types.InputLogEvent, len(output.Events))
 		for i, e := range output.Events {
@@ -109,7 +110,7 @@ func CopyLogStream(
 			LogEvents:     inputEvents,
 		})
 		if err != nil {
-			return fmt.Errorf("put events: %w", err)
+			return processed, fmt.Errorf("put events: %w", err)
 		}
 
 		// GetLogEvents returns the same token when there are no more events
@@ -119,7 +120,7 @@ func CopyLogStream(
 		nextToken = output.NextForwardToken
 	}
 
-	return nil
+	return processed, nil
 }
 
 // ListLogGroupNames lists log group names that match the specified pattern.
