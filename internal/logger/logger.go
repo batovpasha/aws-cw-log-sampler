@@ -14,11 +14,16 @@ type ctxKey string
 
 const traceIDKey ctxKey = "trace_id"
 
+// https://github.com/golang/example/blob/master/slog-handler-guide/README.md
 func (h *contextHandler) Handle(ctx context.Context, r slog.Record) error {
 	if traceId, ok := ctx.Value(traceIDKey).(string); ok {
 		r.AddAttrs(slog.String(string(traceIDKey), traceId))
 	}
 	return h.Handler.Handle(ctx, r)
+}
+
+func (h *contextHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return &contextHandler{Handler: h.Handler.WithAttrs(attrs)}
 }
 
 func New(version string) *slog.Logger {
